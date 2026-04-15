@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movie Recommender System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+            font-size: 2em;
+        }
+
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 0.95em;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            text-align: center;
+            color: #667eea;
+            display: none;
+            margin: 20px 0;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background-color: #fee;
+            color: #c00;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: none;
+            border-left: 4px solid #c00;
+        }
+
+        .success {
+            background-color: #efe;
+            color: #0a0;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: none;
+            border-left: 4px solid #0a0;
+        }
+
+        .results {
+            display: none;
+        }
+
+        .results.show {
+            display: block;
+        }
+
+        .movie-name {
+            color: #764ba2;
+            font-size: 1.3em;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .recommendations-list {
+            list-style: none;
+        }
+
+        .recommendations-list li {
+            background: #f9f9f9;
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
+            border-radius: 3px;
+            transition: background-color 0.2s;
+        }
+
+        .recommendations-list li:hover {
+            background-color: #f0f0f0;
+        }
+
+        .recommendations-list li::before {
+            content: "🎬 ";
+            margin-right: 10px;
+        }
+
+        .no-results {
+            text-align: center;
+            color: #999;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 5px;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 1.5em;
+            }
+
+            .input-group {
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Movie Recommender</h1>
+        <p class="subtitle">Find movies similar to your favorite films</p>
+
+        <div class="input-group">
+            <input 
+                type="text" 
+                id="movieInput" 
+                placeholder="Enter a movie name..."
+                onkeyup="handleKeyPress(event)"
+            >
+            <button onclick="getRecommendations()">Recommend</button>
+        </div>
+
+        <div class="error" id="errorMessage"></div>
+        <div class="success" id="successMessage"></div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Finding recommendations...</p>
+        </div>
+
+        <div class="results" id="results">
+            <div class="movie-name" id="inputMovieName"></div>
+            <ul class="recommendations-list" id="recommendationsList"></ul>
+        </div>
+    </div>
+
+    <script>
+        const movieInput = document.getElementById('movieInput');
+        const errorMessage = document.getElementById('errorMessage');
+        const successMessage = document.getElementById('successMessage');
+        const loading = document.getElementById('loading');
+        const results = document.getElementById('results');
+        const inputMovieName = document.getElementById('inputMovieName');
+        const recommendationsList = document.getElementById('recommendationsList');
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                getRecommendations();
+            }
+        }
+
+        async function getRecommendations() {
+            const movieName = movieInput.value.trim();
+
+            if (!movieName) {
+                showError('Please enter a movie name');
+                return;
+            }
+
+            clearMessages();
+            loading.style.display = 'block';
+            results.classList.remove('show');
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ movie_name: movieName })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                loading.style.display = 'none';
+
+                if (data.found) {
+                    displayResults(data.movie_name, data.recommendations);
+                    showSuccess(`Found recommendations for "${data.movie_name}"`);
+                } else {
+                    showError(`Movie "${movieName}" not found in the dataset. Try another movie.`);
+                    results.classList.remove('show');
+                }
+            } catch (error) {
+                loading.style.display = 'none';
+                showError(`Error: ${error.message}`);
+                console.error('Error:', error);
+            }
+        }
+
+        function displayResults(movieName, recommendations) {
+            inputMovieName.textContent = `Recommendations for: ${movieName}`;
+            recommendationsList.innerHTML = '';
+
+            if (recommendations.length === 0) {
+                recommendationsList.innerHTML = '<div class="no-results">No recommendations found</div>';
+            } else {
+                recommendations.forEach((movie, index) => {
+                    const li = document.createElement('li');
+                    li.textContent = movie;
+                    li.style.animationDelay = `${index * 0.1}s`;
+                    recommendationsList.appendChild(li);
+                });
+            }
+
+            results.classList.add('show');
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+        }
+
+        function showSuccess(message) {
+            successMessage.textContent = message;
+            successMessage.style.display = 'block';
+        }
+
+        function clearMessages() {
+            errorMessage.style.display = 'none';
+            successMessage.style.display = 'none';
+        }
+
+        // Focus on input on page load
+        window.addEventListener('load', () => {
+            movieInput.focus();
+        });
+    </script>
+</body>
+</html>
