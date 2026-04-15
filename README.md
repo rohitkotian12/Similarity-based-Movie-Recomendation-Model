@@ -22,8 +22,8 @@ Project Structure:
 
 Installation & Setup:
 1. Clone the repository-
-  git clone https://github.com/your-username/movie-recommender.git
-  cd movie-recommender
+  git clone [https://github.com/your-username/movie-recommender.git
+  cd movie-recommender](https://github.com/rohitkotian12/Similarity-based-Movie-Recomendation-Model/tree/main?tab=readme-ov-file)
 
 2. Local Environment Setup-
 Ensure you have Python 3.12 installed.
